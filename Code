@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
+#define MAX 1024
+
+void copyFile(char *src, char *dest)
+{
+    int in = open(src, O_RDONLY);
+    int out = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+
+    if (in < 0 || out < 0) {
+        printf("Error copying %s\n", src);
+        return;
+    }
+
+    char buffer[1024];
+    int n;
+
+    while ((n = read(in, buffer, sizeof(buffer))) > 0)
+        write(out, buffer, n);
+
+    close(in);
+    close(out);
+}
+
+void syncDir(char *src, char *backup)
+{
+    DIR *dir = opendir(src);
+    struct dirent *entry;
+
+    if (dir == NULL) {
+        printf("Cannot open %s\n", src);
+        return;
+    }
+
+    mkdir(backup, 0755);
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (!strcmp(entry->d_name, ".") ||
+            !strcmp(entry->d_name, ".."))
+            continue;
+
+        char srcPath[MAX];
+        char backupPath[MAX];
+
+        snprintf(srcPath, MAX, "%s/%s", src, entry->d_name);
+        snprintf(backupPath, MAX, "%s/%s", backup, entry->d_name);
+
+        struct stat srcInfo, backupInfo;
+
+        stat(srcPath, &srcInfo);
+
+        if (S_ISDIR(srcInfo.st_mode)) {
+            syncDir(srcPath, backupPath);
+        }
+        else if (S_ISREG(srcInfo.st_mode)) {
+
+            if (stat(backupPath, &backupInfo) != 0) {
+                copyFile(srcPath, backupPath);
+                printf("Copied: %s\n", srcPath);
+            }
+            else if (srcInfo.st_size != backupInfo.st_size ||
+                     srcInfo.st_mtime > backupInfo.st_mtime) {
+                copyFile(srcPath, backupPath);
+                printf("Updated: %s\n", srcPath);
+            }
+        }
+    }
+
+    closedir(dir);
+}
+
+void deleteExtra(char *src, char *backup)
+{
+    DIR *dir = opendir(backup);
+    struct dirent *entry;
+
+    if (dir == NULL)
+        return;
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (!strcmp(entry->d_name, ".") ||
+            !strcmp(entry->d_name, ".."))
+            continue;
+
+        char srcPath[MAX];
+        char backupPath[MAX];
+
+        snprintf(srcPath, MAX, "%s/%s", src, entry->d_name);
+        snprintf(backupPath, MAX, "%s/%s", backup, entry->d_name);
+
+        struct stat info;
+
+        if (stat(srcPath, &info) != 0) {
+            stat(backupPath, &info);
+
+            if (S_ISDIR(info.st_mode)) {
+                deleteExtra(srcPath, backupPath);
+                rmdir(backupPath);
+            }
+            else {
+                unlink(backupPath);
+                printf("Deleted: %s\n", backupPath);
+            }
+        }
+        else if (S_ISDIR(info.st_mode)) {
+            deleteExtra(srcPath, backupPath);
+        }
+    }
+
+    closedir(dir);
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc < 3) {
+        printf("Usage: %s <source> <backup> [-d]\n", argv[0]);
+        return 1;
+    }
+
+    char *source = argv[1];
+    char *backup = argv[2];
+
+    printf("Starting backup...\n");
+
+    syncDir(source, backup);
+
+    if (argc == 4 && strcmp(argv[3], "-d") == 0) {
+        printf("\nChecking for deleted files...\n");
+        deleteExtra(source, backup);
+    }
+
+    printf("\nBackup completed.\n");
+
+    return 0;
+}
+```
