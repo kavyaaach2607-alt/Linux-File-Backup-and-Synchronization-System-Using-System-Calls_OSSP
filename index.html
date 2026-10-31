@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linux Backup Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>Linux backup dashboard</h1><p class="sub" id="watch">Connecting...</p></div>
+    <div class="right"><span class="live off" id="live">● Connecting</span><span class="pill info" id="status">-</span></div>
+  </header>
+
+  <section class="cards">
+    <div class="card"><span>Source files</span><b id="c-src">-</b><small id="c-src-s">&nbsp;</small></div>
+    <div class="card"><span>Backup files</span><b id="c-bak">-</b><small id="c-bak-s">&nbsp;</small></div>
+    <div class="card"><span>In sync</span><b id="c-sync">-</b><small id="c-sync-s">&nbsp;</small></div>
+    <div class="card"><span>Last run</span><b id="c-last">-</b><small id="c-last-s">&nbsp;</small></div>
+  </section>
+
+  <section class="panel bars">
+    <div><div class="row"><span>Sync progress</span><span class="muted" id="p1t"></span></div><div class="bar"><i id="p1"></i></div></div>
+    <div><div class="row"><span>Version history space</span><span class="muted" id="p2t"></span></div><div class="bar"><i id="p2" class="alt"></i></div></div>
+  </section>
+
+  <main>
+    <section class="panel"><h2>Activity feed</h2><div id="feed" class="feed"></div></section>
+    <section class="panel">
+      <div class="row"><h2>Files</h2><input id="q" type="search" placeholder="Search files"></div>
+      <div class="tabs" id="tabs">
+        <button data-t="all" class="on">All</button>
+        <button data-t="need">Out of sync</button>
+        <button data-t="del">Deleted (recoverable)</button>
+      </div>
+      <div class="scroll"><table><thead id="thead"></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dt"></h3>
+  <p class="muted">Restoring copies the chosen version back into source/. The file's current content is saved as a version first, so you can undo it.</p>
+  <div id="dl"></div>
+  <button id="dx">Close</button>
+</dialog>
+<div id="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>
